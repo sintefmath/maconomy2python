@@ -47,12 +47,23 @@ def getemployeesbillingprices(fn):
             line_count += 1
     return data
 
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 'True', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'False', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Parse and plot data')
     parser.add_argument('--filename', metavar='filename', required=True, type=str, help='name of cvs file')
     parser.add_argument('--totalbudget', metavar='totalbudget', required=False, type=int, help='total budget in KNOK')
+    parser.add_argument('--regressionON', metavar='regressionON', type=str2bool, nargs='?', const=True, default=True, help='plot regression')
     args = parser.parse_args()
     billings_by_day = getbillingprice(args.filename)
     employees_by_number = getemployees(args.filename)
@@ -81,8 +92,14 @@ if __name__ == "__main__":
         date = datetime.datetime.strptime(datestr, "%d.%m.%Y")
         billings_by_month[date.month-1] += billings
     cumsum_billings_by_month=np.cumsum(billings_by_month)
+
     today = datetime.datetime.today()
-    cumsum_billings_by_month[today.month:] = 0
+    month=today.month
+    ### if the project is from a past year, set month to 12
+    if today.year > date.year:
+        month=12
+
+    cumsum_billings_by_month[month:] = 0
     fig1, ax1 = plt.subplots()
     ax1.bar(np.linspace(1,12,12),cumsum_billings_by_month/1000)
     ax1.set_ylabel('KNOK')
@@ -91,13 +108,14 @@ if __name__ == "__main__":
     if args.totalbudget:
         ax1.plot([1,12], [args.totalbudget, args.totalbudget],'-k',label='total budget')
 
-    ydata = cumsum_billings_by_month[:today.month]
-    xdata = np.arange(1,today.month+1)
-    popt, pcov = curve_fit(linear_func, xdata, ydata)
-    ax1.plot(np.arange(1,13),linear_func(np.arange(1,13), popt[0], popt[1])/1000,':k')
-    ax1.plot(12,linear_func(12, popt[0], popt[1])/1000,'ko',label='linear regression')
+    if args.regressionON and month>2:
+        ydata = cumsum_billings_by_month[:month]
+        xdata = np.arange(1,month+1)
+        popt, pcov = curve_fit(linear_func, xdata, ydata)
+        ax1.plot(np.arange(1,13),linear_func(np.arange(1,13), popt[0], popt[1])/1000,':k',label='linear regression')
+        ax1.plot(12,linear_func(12, popt[0], popt[1])/1000,'ko')
+        ax1.legend()
     ax1.set_title('Actuals accumulated')
-    ax1.legend()
     plt.savefig("actuals_accumulated.png")
 
 ### pie charts
@@ -107,7 +125,7 @@ if __name__ == "__main__":
     usedbudget = np.sum(pie_sizes)
 
     fig1, ax1 = plt.subplots()
-    ax1.pie(pie_sizes/usedbudget, labels=pie_labels, autopct='%1.1f%%', shadow=True, startangle=90, normalize=True)
+    ax1.pie(pie_sizes/usedbudget, labels=pie_labels, autopct='%1.1f%%', shadow=True, startangle=90)
     ax1.axis('equal')
     ax1.set_title('Budget actuals')
     plt.savefig("pie1.png")
@@ -118,7 +136,7 @@ if __name__ == "__main__":
         pie_sizes = np.append(pie_sizes, args.totalbudget*1000-usedbudget)
         pie_sizes = pie_sizes/args.totalbudget*1000
         fig1, ax1 = plt.subplots()
-        ax1.pie(pie_sizes, explode=explode, labels=pie_labels, autopct='%1.1f%%', shadow=True, startangle=90, normalize=True)
+        ax1.pie(pie_sizes, explode=explode, labels=pie_labels, autopct='%1.1f%%', shadow=True, startangle=90)
         ax1.axis('equal')
         ax1.set_title('Budget total')
         plt.savefig("pie2.png")

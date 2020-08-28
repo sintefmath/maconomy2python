@@ -1,6 +1,6 @@
 # maconomy2python
 
-example usage: python readprojectdata.py --filename ExportProjectCard_projectnumber.csv --totalbudget 1000
+example usage: python plotprojectdata.py --filename ExportProjectCard_projectnumber.csv --totalbudget 1000
 
 example output:
 
