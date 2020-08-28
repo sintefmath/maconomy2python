@@ -8,42 +8,61 @@ from scipy.optimize import curve_fit
 def linear_func(x, a, b):
     return a + b * x
 
-def getbillingprice(fn):
+def guessDelimiter(fn):
+    with open(fn) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=';')
+        for row in csv_reader:
+            if len(row)>6:
+                return ";"
+            else:
+                return ","
+
+
+def getbillingprice(fn, delimiter):
     data={}
     with open(fn) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
+        csv_reader = csv.reader(csv_file, delimiter=delimiter)
         line_count = 0
         for row in csv_reader:
-            if line_count > 0:
-                if row[1] in data:
-                    data[row[1]] += int(row[10].replace(" ", ""))
+            if line_count == 0:
+                billing_index=row.index('Billing Price')
+                date_index=row.index('Entry Date')
+            else:
+                if row[date_index] in data:
+                    data[row[date_index]] += int(row[billing_index].replace(" ", "").replace(",00",""))
                 else:
-                    data[row[1]] = int(row[10].replace(" ", ""))
+                    data[row[date_index]] = int(row[billing_index].replace(" ", "").replace(",00",""))
             line_count += 1
     return data
 
-def getemployees(fn):
+def getemployees(fn, delimiter):
     data={}
     with open(fn) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
+        csv_reader = csv.reader(csv_file, delimiter=delimiter)
         line_count = 0
         for row in csv_reader:
-            if line_count > 0:
-                data[row[18]] = str(row[19])
+            if line_count == 0:
+                emplno_index=row.index('Empl. No.')
+                emplname_index=row.index('Empl. Name')
+            else:
+                data[row[emplno_index]] = str(row[emplname_index])
             line_count += 1
     return data
 
-def getemployeesbillingprices(fn):
+def getemployeesbillingprice(fn, delimiter):
     data={}
     with open(fn) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
+        csv_reader = csv.reader(csv_file, delimiter=delimiter)
         line_count = 0
         for row in csv_reader:
-            if line_count > 0:
-                if row[18] in data:
-                    data[row[18]] += int(row[10].replace(" ", ""))
+            if line_count == 0:
+                emplno_index=row.index('Empl. No.')
+                billing_index=row.index('Billing Price')
+            else:
+                if row[emplno_index] in data:
+                    data[row[emplno_index]] += int(row[billing_index].replace(" ", "").replace(",00",""))
                 else:
-                    data[row[18]] = int(row[10].replace(" ", ""))
+                    data[row[emplno_index]] = int(row[billing_index].replace(" ", "").replace(",00",""))
             line_count += 1
     return data
 
@@ -65,9 +84,10 @@ if __name__ == "__main__":
     parser.add_argument('--totalbudget', metavar='totalbudget', required=False, type=int, help='total budget in KNOK')
     parser.add_argument('--regressionON', metavar='regressionON', type=str2bool, nargs='?', const=True, default=True, help='plot regression')
     args = parser.parse_args()
-    billings_by_day = getbillingprice(args.filename)
-    employees_by_number = getemployees(args.filename)
-    billings_by_employees = getemployeesbillingprices(args.filename)
+    delimiter = guessDelimiter(args.filename)
+    billings_by_day = getbillingprice(args.filename, delimiter)
+    employees_by_number = getemployees(args.filename, delimiter)
+    billings_by_employees = getemployeesbillingprice(args.filename, delimiter)
     tick_labels=('Jan','Feb','Mar','Apr','Mai','Jun','Jul','Aug','Sep','Oct','Nov','Des')
 
 #### actuals per month
