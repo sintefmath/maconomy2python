@@ -5,20 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt 
 from scipy.optimize import curve_fit
 
+delimiter = ";"
+
 def linear_func(x, a, b):
     return a + b * x
 
-def guessDelimiter(fn):
-    with open(fn) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=';')
-        for row in csv_reader:
-            if len(row)>6:
-                return ";"
-            else:
-                return ","
-
-
-def getbillingprice(fn, delimiter):
+def getbillingprice(fn):
     data={}
     with open(fn) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=delimiter)
@@ -35,7 +27,7 @@ def getbillingprice(fn, delimiter):
             line_count += 1
     return data
 
-def getemployees(fn, delimiter):
+def getemployees(fn):
     data={}
     with open(fn) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=delimiter)
@@ -49,7 +41,7 @@ def getemployees(fn, delimiter):
             line_count += 1
     return data
 
-def getemployeesbillingprice(fn, delimiter):
+def getemployeesbillingprice(fn):
     data={}
     with open(fn) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=delimiter)
@@ -84,10 +76,9 @@ if __name__ == "__main__":
     parser.add_argument('--totalbudget', metavar='totalbudget', required=False, type=int, help='total budget in KNOK')
     parser.add_argument('--regressionON', metavar='regressionON', type=str2bool, nargs='?', const=True, default=True, help='plot regression')
     args = parser.parse_args()
-    delimiter = guessDelimiter(args.filename)
-    billings_by_day = getbillingprice(args.filename, delimiter)
-    employees_by_number = getemployees(args.filename, delimiter)
-    billings_by_employees = getemployeesbillingprice(args.filename, delimiter)
+    billings_by_day = getbillingprice(args.filename)
+    employees_by_number = getemployees(args.filename)
+    billings_by_employees = getemployeesbillingprice(args.filename)
     tick_labels=('Jan','Feb','Mar','Apr','Mai','Jun','Jul','Aug','Sep','Oct','Nov','Des')
 
 #### actuals per month
@@ -102,19 +93,18 @@ if __name__ == "__main__":
     ax1.set_xticklabels(tick_labels)
     if args.totalbudget:
         ax1.plot([1,12], [args.totalbudget/12, args.totalbudget/12],':k',label='mean')
+        ax1.legend()
     ax1.set_title('Actuals per month')
-    ax1.legend()
-    plt.savefig("actuals_per_month.png")
-
-### actuals accumulated
-    billings_by_month = np.zeros(12)
-    for datestr, billings in billings_by_day.items():
-        date = datetime.datetime.strptime(datestr, "%d.%m.%Y")
-        billings_by_month[date.month-1] += billings
-    cumsum_billings_by_month=np.cumsum(billings_by_month)
+    plt.savefig("actuals_per_week.png")
 
     today = datetime.datetime.today()
+    week=today.isocalendar()[1]
     month=today.month
+    year=today.year
+
+### actuals accumulated per month
+    cumsum_billings_by_month=np.cumsum(billings_by_month)
+
     ### if the project is from a past year, set month to 12
     if today.year > date.year:
         month=12
@@ -135,8 +125,49 @@ if __name__ == "__main__":
         ax1.plot(np.arange(1,13),linear_func(np.arange(1,13), popt[0], popt[1])/1000,':k',label='linear regression')
         ax1.plot(12,linear_func(12, popt[0], popt[1])/1000,'ko')
         ax1.legend()
-    ax1.set_title('Actuals accumulated')
-    plt.savefig("actuals_accumulated.png")
+    ax1.set_title('Actuals accumulated per month')
+    plt.savefig("actuals_accumulated_per_month.png")
+
+
+#### actuals per week
+    num_weeks = datetime.date(year, 12, 31).isocalendar()[1]
+    billings_by_week = np.zeros(num_weeks)
+    for datestr, billings in billings_by_day.items():
+        date = datetime.datetime.strptime(datestr, "%d.%m.%Y")
+        billings_by_week[date.isocalendar()[1]-1] += billings
+    fig1, ax1 = plt.subplots()
+    ax1.bar(np.linspace(1,num_weeks,num_weeks),billings_by_week/1000)
+    ax1.set_ylabel('KNOK')
+    if args.totalbudget:
+        ax1.plot([1,num_weeks], [args.totalbudget/num_weeks, args.totalbudget/num_weeks],':k',label='mean')
+        ax1.legend()
+    ax1.set_title('Actuals per week')
+    plt.savefig("actuals_per_week.png")
+
+
+### actuals accumulated per week
+    cumsum_billings_by_week=np.cumsum(billings_by_week)
+
+    ### if the project is from a past year, set week to number of weeks last year
+    if today.year > date.year:
+        week = datetime.date(year-1, 12, 31).isocalendar()[1]
+
+    cumsum_billings_by_week[week:] = 0
+    fig1, ax1 = plt.subplots()
+    ax1.bar(np.linspace(1,num_weeks,num_weeks),cumsum_billings_by_week/1000)
+    ax1.set_ylabel('KNOK')
+    if args.totalbudget:
+        ax1.plot([1,num_weeks], [args.totalbudget, args.totalbudget],'-k',label='total budget')
+
+    if args.regressionON and week>2:
+        ydata = cumsum_billings_by_week[:week]
+        xdata = np.arange(1,week+1)
+        popt, pcov = curve_fit(linear_func, xdata, ydata)
+        ax1.plot(np.arange(1,num_weeks+1),linear_func(np.arange(1,num_weeks+1), popt[0], popt[1])/1000,':k',label='linear regression')
+        ax1.plot(num_weeks,linear_func(num_weeks, popt[0], popt[1])/1000,'ko')
+        ax1.legend()
+    ax1.set_title('Actuals accumulated per week')
+    plt.savefig("actuals_accumulated_per_week.png")
 
 ### pie charts
     ### the following assumes the same ordering in employees_by_number and billings_by_employees which should be true
