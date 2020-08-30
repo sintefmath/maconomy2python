@@ -41,8 +41,10 @@ def getemployees(fn):
             line_count += 1
     return data
 
-def getemployeesbillingprice(fn):
+def getemployeesbillingprice(employees_by_number, fn):
     data={}
+    for key in employees_by_number:
+        data[key]={}
     with open(fn) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=delimiter)
         line_count = 0
@@ -50,11 +52,9 @@ def getemployeesbillingprice(fn):
             if line_count == 0:
                 emplno_index=row.index('Empl. No.')
                 billing_index=row.index('Billing Price')
+                date_index=row.index('Entry Date')
             else:
-                if row[emplno_index] in data:
-                    data[row[emplno_index]] += int(row[billing_index].replace(" ", "").replace(",00",""))
-                else:
-                    data[row[emplno_index]] = int(row[billing_index].replace(" ", "").replace(",00",""))
+                data[row[emplno_index]][row[date_index]] = int(row[billing_index].replace(" ", "").replace(",00",""))
             line_count += 1
     return data
 
@@ -78,7 +78,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     billings_by_day = getbillingprice(args.filename)
     employees_by_number = getemployees(args.filename)
-    billings_by_employees = getemployeesbillingprice(args.filename)
+    billings_by_employees_by_day = getemployeesbillingprice(employees_by_number, args.filename)
+    billings_by_employees = {}
+    for employeenr, billings in billings_by_employees_by_day.items():
+        billings_by_employees[employeenr] = 0
+        for billingday, value in billings.items():
+            billings_by_employees[employeenr] += value
     tick_labels=('Jan','Feb','Mar','Apr','Mai','Jun','Jul','Aug','Sep','Oct','Nov','Des')
 
 #### actuals per month
@@ -170,7 +175,6 @@ if __name__ == "__main__":
     plt.savefig("actuals_accumulated_per_week.png")
 
 ### pie charts
-    ### the following assumes the same ordering in employees_by_number and billings_by_employees which should be true
     pie_labels = list(employees_by_number.values())
     pie_sizes = np.array(list(billings_by_employees.values()))
     usedbudget = np.sum(pie_sizes)
