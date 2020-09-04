@@ -76,50 +76,64 @@ if __name__ == "__main__":
     parser.add_argument('--totalbudget', metavar='totalbudget', required=False, type=int, help='total budget in KNOK')
     parser.add_argument('--regressionON', metavar='regressionON', type=str2bool, nargs='?', const=True, default=True, help='plot regression')
     args = parser.parse_args()
+
     billings_by_day = getbillingprice(args.filename)
+    ### there might be two people with the exact name, we need to use the Empl. No.
     employees_by_number = getemployees(args.filename)
     billings_by_employees_by_day = getemployeesbillingprice(employees_by_number, args.filename)
-    billings_by_employees = {}
+
+    billings_by_employees_total = {}
     for employeenr, billings in billings_by_employees_by_day.items():
-        billings_by_employees[employeenr] = 0
+        billings_by_employees_total[employeenr] = 0
         for billingday, value in billings.items():
-            billings_by_employees[employeenr] += value
-    tick_labels=('Jan','Feb','Mar','Apr','Mai','Jun','Jul','Aug','Sep','Oct','Nov','Des')
+            billings_by_employees_total[employeenr] += value
+
+    billings_by_employees_by_month = {}
+    for employeenr, billings in billings_by_employees_by_day.items():
+        billings_by_employees_by_month[employeenr] = np.zeros(12)
+        for billingday, value in billings.items():
+            date = datetime.datetime.strptime(billingday, "%d.%m.%Y")
+            billings_by_employees_by_month[employeenr][date.month] += value
+
+    labels_month=('Jan','Feb','Mar','Apr','Mai','Jun','Jul','Aug','Sep','Oct','Nov','Des')
 
 #### actuals per month
     billings_by_month = np.zeros(12)
-    for datestr, billings in billings_by_day.items():
-        date = datetime.datetime.strptime(datestr, "%d.%m.%Y")
+    for billingday, billings in billings_by_day.items():
+        date = datetime.datetime.strptime(billingday, "%d.%m.%Y")
         billings_by_month[date.month-1] += billings
     fig1, ax1 = plt.subplots()
     ax1.bar(np.linspace(1,12,12),billings_by_month/1000)
     ax1.set_ylabel('KNOK')
     ax1.set_xticks(np.arange(1,13))
-    ax1.set_xticklabels(tick_labels)
+    ax1.set_xticklabels(labels_month)
     if args.totalbudget:
         ax1.plot([1,12], [args.totalbudget/12, args.totalbudget/12],':k',label='mean')
         ax1.legend()
     ax1.set_title('Actuals per month')
-    plt.savefig("actuals_per_week.png")
+    plt.savefig("actuals_per_month.png")
 
     today = datetime.datetime.today()
     week=today.isocalendar()[1]
     month=today.month
     year=today.year
 
+    ### if the project is from a past year, set month to 12 and week to number of weeks last year
+    if today.year > date.year:
+        month = 12
+        week = datetime.date(year-1, 12, 31).isocalendar()[1]
+
+
+
 ### actuals accumulated per month
     cumsum_billings_by_month=np.cumsum(billings_by_month)
-
-    ### if the project is from a past year, set month to 12
-    if today.year > date.year:
-        month=12
-
     cumsum_billings_by_month[month:] = 0
+
     fig1, ax1 = plt.subplots()
     ax1.bar(np.linspace(1,12,12),cumsum_billings_by_month/1000)
     ax1.set_ylabel('KNOK')
     ax1.set_xticks(np.arange(1,13))
-    ax1.set_xticklabels(tick_labels)
+    ax1.set_xticklabels(labels_month)
     if args.totalbudget:
         ax1.plot([1,12], [args.totalbudget, args.totalbudget],'-k',label='total budget')
 
@@ -137,8 +151,8 @@ if __name__ == "__main__":
 #### actuals per week
     num_weeks = datetime.date(year, 12, 31).isocalendar()[1]
     billings_by_week = np.zeros(num_weeks)
-    for datestr, billings in billings_by_day.items():
-        date = datetime.datetime.strptime(datestr, "%d.%m.%Y")
+    for billingday, billings in billings_by_day.items():
+        date = datetime.datetime.strptime(billingday, "%d.%m.%Y")
         billings_by_week[date.isocalendar()[1]-1] += billings
     fig1, ax1 = plt.subplots()
     ax1.bar(np.linspace(1,num_weeks,num_weeks),billings_by_week/1000)
@@ -152,12 +166,8 @@ if __name__ == "__main__":
 
 ### actuals accumulated per week
     cumsum_billings_by_week=np.cumsum(billings_by_week)
-
-    ### if the project is from a past year, set week to number of weeks last year
-    if today.year > date.year:
-        week = datetime.date(year-1, 12, 31).isocalendar()[1]
-
     cumsum_billings_by_week[week:] = 0
+
     fig1, ax1 = plt.subplots()
     ax1.bar(np.linspace(1,num_weeks,num_weeks),cumsum_billings_by_week/1000)
     ax1.set_ylabel('KNOK')
@@ -175,18 +185,19 @@ if __name__ == "__main__":
     plt.savefig("actuals_accumulated_per_week.png")
 
 ### pie charts
-    pie_labels = list(employees_by_number.values())
-    pie_sizes = np.array(list(billings_by_employees.values()))
+    employeenames = list(employees_by_number.values())
+    pie_sizes = np.array(list(billings_by_employees_total.values()))
     usedbudget = np.sum(pie_sizes)
 
     fig1, ax1 = plt.subplots()
-    ax1.pie(pie_sizes/usedbudget, labels=pie_labels, autopct='%1.1f%%', shadow=True, startangle=90)
+    ax1.pie(pie_sizes/usedbudget, labels=employeenames, autopct='%1.1f%%', shadow=True, startangle=90)
     ax1.axis('equal')
     ax1.set_title('Budget actuals')
     plt.savefig("pie1.png")
 
     if args.totalbudget:
         explode = np.append(np.zeros_like(pie_sizes), 0.1)
+        pie_labels = employeenames.copy()
         pie_labels.append('remaining')
         pie_sizes = np.append(pie_sizes, args.totalbudget*1000-usedbudget)
         pie_sizes = pie_sizes/args.totalbudget*1000
@@ -195,4 +206,30 @@ if __name__ == "__main__":
         ax1.axis('equal')
         ax1.set_title('Budget total')
         plt.savefig("pie2.png")
+
+    print("")
+    print("Billings total:")
+    ln = len(max(employeenames, key=len))
+    for a,b in billings_by_employees_total.items():
+        tmp=employees_by_number[a].ljust(ln, ' ')+" :"
+        tmp+=str(int(b/1000)).rjust(4, ' ')+" KNOK"
+        print(tmp)
+    print("Remaining:", args.totalbudget*1000-usedbudget)
     
+    print("")
+    print("Billings:")
+    tmp=str("Employee").ljust(ln, ' ')+" |"
+    for i in range(0,12):
+        tmp+=labels_month[i].rjust(4, ' ')
+    tmp+="| total"
+    print(tmp)
+    tmp=str("-").ljust(ln, '-')+"-|"
+    for i in range(0,12):
+        tmp+=str("-").rjust(4, '-')
+    tmp+="|      "
+    print(tmp)
+    for a,b in billings_by_employees_by_month.items():
+        tmp=employees_by_number[a].ljust(ln, ' ')+" |"
+        for i in range(0,12):
+            tmp+=str(int(b[i]/1000)).rjust(4, ' ')
+        print(tmp)
