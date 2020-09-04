@@ -93,7 +93,7 @@ if __name__ == "__main__":
         billings_by_employees_by_month[employeenr] = np.zeros(12)
         for billingday, value in billings.items():
             date = datetime.datetime.strptime(billingday, "%d.%m.%Y")
-            billings_by_employees_by_month[employeenr][date.month] += value
+            billings_by_employees_by_month[employeenr][date.month-1] += value
 
     labels_month=('Jan','Feb','Mar','Apr','Mai','Jun','Jul','Aug','Sep','Oct','Nov','Des')
 
@@ -207,29 +207,49 @@ if __name__ == "__main__":
         ax1.set_title('Budget total')
         plt.savefig("pie2.png")
 
-    print("")
-    print("Billings total:")
+    ### print some stats
     ln = len(max(employeenames, key=len))
+    tot={}
     for a,b in billings_by_employees_total.items():
-        tmp=employees_by_number[a].ljust(ln, ' ')+" :"
-        tmp+=str(int(b/1000)).rjust(4, ' ')+" KNOK"
-        print(tmp)
-    print("Remaining:", args.totalbudget*1000-usedbudget)
+        tot[a]=str(int(b/1000)).rjust(6, ' ')
     
-    print("")
-    print("Billings:")
+    print("Billings [KNOK] (modulo round off errors):")
     tmp=str("Employee").ljust(ln, ' ')+" |"
     for i in range(0,12):
         tmp+=labels_month[i].rjust(4, ' ')
     tmp+="| total"
     print(tmp)
-    tmp=str("-").ljust(ln, '-')+"-|"
+
+    tmp=str("-").ljust(ln, '-')+"--"
     for i in range(0,12):
         tmp+=str("-").rjust(4, '-')
-    tmp+="|      "
+    tmp+="-------"
     print(tmp)
+
     for a,b in billings_by_employees_by_month.items():
         tmp=employees_by_number[a].ljust(ln, ' ')+" |"
         for i in range(0,12):
             tmp+=str(int(b[i]/1000)).rjust(4, ' ')
+        tmp+="|"+tot[a]
         print(tmp)
+
+    tmp=str("-").ljust(ln, '-')+"--"
+    for i in range(0,12):
+        tmp+=str("-").rjust(4, '-')
+    tmp+="-------"
+    print(tmp)
+
+    tmp=str(" ").ljust(ln, ' ')+" |"
+    for i in range(0,12):
+        tmp+=str(int(billings_by_month[i]/1000)).rjust(4, ' ')
+    tmp+="|"+str(int(usedbudget/1000)).rjust(6,' ')
+    print(tmp)
+    tmp=str("-").ljust(ln, '-')+"--"
+    for i in range(0,12):
+        tmp+=str("-").rjust(4, '-')
+    tmp+="-------"
+    print(tmp)
+
+    print("")
+    print("Remaining:", args.totalbudget-int(usedbudget/1000), " KNOK")
+    print("")
