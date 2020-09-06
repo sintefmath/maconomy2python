@@ -85,20 +85,48 @@ if __name__ == "__main__":
     employees_by_number = getemployees(args.filename)
     billings_by_employees_by_day = getemployeesbillingprice(employees_by_number, args.filename)
 
-    billings_by_employees_total = {}
+### if the project is from a past year, set month to 12 and week to number of weeks last year
+    today = datetime.datetime.today()
+    week=today.isocalendar()[1]
+    month=today.month
+    year=today.year
+    num_weeks = datetime.date(year, 12, 31).isocalendar()[1]
+
+    datestr = list(billings_by_day.keys())[0]
+    date = datetime.datetime.strptime(datestr, "%d.%m.%Y")
+
+    ### any date from the csv file will suffice
+    if today.year > date.year:
+        month = 12
+        week = datetime.date(year-1, 12, 31).isocalendar()[1]
+
+
+    billings_by_employees_by_year = {}
     billings_by_employees_by_month = {}
+    billings_by_employees_by_week = {}
     for employeenr, billings in billings_by_employees_by_day.items():
-        billings_by_employees_total[employeenr] = 0
+        billings_by_employees_by_year[employeenr] = 0
         billings_by_employees_by_month[employeenr] = np.zeros(12)
+        billings_by_employees_by_week[employeenr] = np.zeros(num_weeks)
         for billingday, value in billings.items():
-            billings_by_employees_total[employeenr] += value
+            billings_by_employees_by_year[employeenr] += value
             date = datetime.datetime.strptime(billingday, "%d.%m.%Y")
             billings_by_employees_by_month[employeenr][date.month-1] += value
+            billings_by_employees_by_week[employeenr][date.isocalendar()[1]-1] += value
 
     billings_by_month = np.zeros(12)
+    billings_by_week = np.zeros(num_weeks)
     for billingday, billings in billings_by_day.items():
         date = datetime.datetime.strptime(billingday, "%d.%m.%Y")
         billings_by_month[date.month-1] += billings
+        billings_by_week[date.isocalendar()[1]-1] += billings
+
+    cumsum_billings_by_month=np.cumsum(billings_by_month)
+    cumsum_billings_by_month[month:] = 0
+
+    cumsum_billings_by_week=np.cumsum(billings_by_week)
+    cumsum_billings_by_week[week:] = 0
+
 
     labels_month=('Jan','Feb','Mar','Apr','Mai','Jun','Jul','Aug','Sep','Oct','Nov','Des')
 
@@ -118,7 +146,7 @@ if __name__ == "__main__":
     ax1.set_xticks(np.arange(1,13))
     ax1.set_xticklabels(labels_month)
     if args.totalbudget:
-        ax1.plot([1,12], [args.totalbudget/12, args.totalbudget/12],':k',label='mean')
+        ax1.plot([1,12], [args.totalbudget/12, args.totalbudget/12],':k',label='average budget/month')
         ax1.legend()
     ax1.set_title('Actuals per month')
     plt.savefig("actuals_per_month.png")
@@ -133,7 +161,7 @@ if __name__ == "__main__":
     ax1.set_xticks(np.arange(1,13))
     ax1.set_xticklabels(labels_month)
     if args.totalbudget:
-        ax1.plot([1,12], [args.totalbudget/12, args.totalbudget/12],':k',label='mean')
+        ax1.plot([1,12], [args.totalbudget/12, args.totalbudget/12],':k',label='average budget/month')
     h,l = ax1.get_legend_handles_labels()
     lax.legend(h,l, borderaxespad=0)
     lax.axis("off")
@@ -141,27 +169,9 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig("actuals_per_month_per_employee.png")
 
-    today = datetime.datetime.today()
-    week=today.isocalendar()[1]
-    month=today.month
-    year=today.year
-
-    today = datetime.datetime.today()
-    week=today.isocalendar()[1]
-    month=today.month
-    year=today.year
-
-    ### if the project is from a past year, set month to 12 and week to number of weeks last year
-    if today.year > date.year:
-        month = 12
-        week = datetime.date(year-1, 12, 31).isocalendar()[1]
-
 
 
 ### actuals accumulated per month
-    cumsum_billings_by_month=np.cumsum(billings_by_month)
-    cumsum_billings_by_month[month:] = 0
-
     fig1, ax1 = plt.subplots()
     ax1.bar(np.linspace(1,12,12),cumsum_billings_by_month/1000)
     ax1.set_ylabel('KNOK')
@@ -181,7 +191,7 @@ if __name__ == "__main__":
     plt.savefig("actuals_accumulated_per_month.png")
 
     ### per employee
-    fig1, ax1 = plt.subplots()
+    fig, (ax1,lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[4,1]})
     bot = np.zeros(12)
     for a, b in billings_by_employees_by_month.items():
         bc = np.cumsum(b)
@@ -195,53 +205,42 @@ if __name__ == "__main__":
         ax1.plot([1,12], [args.totalbudget, args.totalbudget],'-k',label='total budget')
 
     if args.regressionON and month>2:
-        ydata = cumsum_billings_by_month[:month]
-        xdata = np.arange(1,month+1)
-        popt, pcov = curve_fit(linear_func, xdata, ydata)
         ax1.plot(np.arange(1,13),linear_func(np.arange(1,13), popt[0], popt[1])/1000,':k',label='linear regression')
         ax1.plot(12,linear_func(12, popt[0], popt[1])/1000,'ko')
-        ax1.legend()
-    ax1.set_title('Actuals accumulated per month per employee')
-    plt.savefig("actuals_accumulated_per_month_per_employee.png")
-
-    fig, (ax1,lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[4,1]})
-    bot = np.zeros(12)
-    for a, b in billings_by_employees_by_month.items():
-        ax1.bar(np.linspace(1,12,12),b/1000, bottom=bot/1000, label=employees_by_number[a])
-        bot+=b
-    ax1.set_ylabel('KNOK')
-    ax1.set_xticks(np.arange(1,13))
-    ax1.set_xticklabels(labels_month)
-    if args.totalbudget:
-        ax1.plot([1,12], [args.totalbudget/12, args.totalbudget/12],':k',label='mean')
     h,l = ax1.get_legend_handles_labels()
     lax.legend(h,l, borderaxespad=0)
     lax.axis("off")
-    ax1.set_title('Actuals per month per employee')
-    plt.tight_layout()
-    plt.savefig("actuals_per_month_per_employee.png")
-
+    ax1.set_title('Actuals accumulated per month per employee')
+    plt.savefig("actuals_accumulated_per_month_per_employee.png")
 
 #### actuals per week
-    num_weeks = datetime.date(year, 12, 31).isocalendar()[1]
-    billings_by_week = np.zeros(num_weeks)
-    for billingday, billings in billings_by_day.items():
-        date = datetime.datetime.strptime(billingday, "%d.%m.%Y")
-        billings_by_week[date.isocalendar()[1]-1] += billings
     fig1, ax1 = plt.subplots()
     ax1.bar(np.linspace(1,num_weeks,num_weeks),billings_by_week/1000)
     ax1.set_ylabel('KNOK')
     if args.totalbudget:
-        ax1.plot([1,num_weeks], [args.totalbudget/num_weeks, args.totalbudget/num_weeks],':k',label='mean')
+        ax1.plot([1,num_weeks], [args.totalbudget/num_weeks, args.totalbudget/num_weeks],':k',label='average budget/week')
         ax1.legend()
     ax1.set_title('Actuals per week')
     plt.savefig("actuals_per_week.png")
 
+    ### per employee
+    fig, (ax1,lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[4,1]})
+    bot = np.zeros(num_weeks)
+    for a, b in billings_by_employees_by_week.items():
+        ax1.bar(np.linspace(1,num_weeks,num_weeks),b/1000, bottom=bot/1000, label=employees_by_number[a])
+        bot+=b
+    ax1.set_ylabel('KNOK')
+    if args.totalbudget:
+        ax1.plot([1,num_weeks], [args.totalbudget/num_weeks, args.totalbudget/num_weeks],':k',label='average budget/week')
+    h,l = ax1.get_legend_handles_labels()
+    lax.legend(h,l, borderaxespad=0)
+    lax.axis("off")
+    ax1.set_title('Actuals per week per employee')
+    plt.tight_layout()
+    plt.savefig("actuals_per_week_per_employee.png")
+
 
 ### actuals accumulated per week
-    cumsum_billings_by_week=np.cumsum(billings_by_week)
-    cumsum_billings_by_week[week:] = 0
-
     fig1, ax1 = plt.subplots()
     ax1.bar(np.linspace(1,num_weeks,num_weeks),cumsum_billings_by_week/1000)
     ax1.set_ylabel('KNOK')
@@ -258,9 +257,31 @@ if __name__ == "__main__":
     ax1.set_title('Actuals accumulated per week')
     plt.savefig("actuals_accumulated_per_week.png")
 
+    ### per employee
+    fig, (ax1,lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[4,1]})
+    bot = np.zeros(num_weeks)
+    for a, b in billings_by_employees_by_week.items():
+        bc = np.cumsum(b)
+        bc[week:] = 0
+        ax1.bar(np.linspace(1,num_weeks,num_weeks),bc/1000, bottom=bot/1000, label=employees_by_number[a])
+        bot+=bc
+    ax1.set_ylabel('KNOK')
+    if args.totalbudget:
+        ax1.plot([1,num_weeks], [args.totalbudget, args.totalbudget],'-k',label='total budget')
+
+    if args.regressionON and week>2:
+        ax1.plot(np.arange(1,num_weeks+1),linear_func(np.arange(1,num_weeks+1), popt[0], popt[1])/1000,':k',label='linear regression')
+        ax1.plot(num_weeks,linear_func(num_weeks, popt[0], popt[1])/1000,'ko')
+
+    h,l = ax1.get_legend_handles_labels()
+    lax.legend(h,l, borderaxespad=0)
+    lax.axis("off")
+    ax1.set_title('Actuals accumulated per week per employee')
+    plt.savefig("actuals_accumulated_per_week_per_employee.png")
+
 ### pie charts
     employeenames = list(employees_by_number.values())
-    pie_sizes = np.array(list(billings_by_employees_total.values()))
+    pie_sizes = np.array(list(billings_by_employees_by_year.values()))
     usedbudget = np.sum(pie_sizes)
 
     fig1, ax1 = plt.subplots()
@@ -284,7 +305,7 @@ if __name__ == "__main__":
     ### print some stats
     ln = len(max(employeenames, key=len))
     tot={}
-    for a,b in billings_by_employees_total.items():
+    for a,b in billings_by_employees_by_year.items():
         tot[a]=str(int(b/1000)).rjust(6, ' ')
     
     print("Billings [KNOK] (modulo round off errors):")
@@ -313,7 +334,7 @@ if __name__ == "__main__":
     tmp+="-------"
     print(tmp)
 
-    tmp=str(" ").ljust(ln, ' ')+" |"
+    tmp=str("total").ljust(ln, ' ')+" |"
     for i in range(0,12):
         tmp+=str(int(billings_by_month[i]/1000)).rjust(4, ' ')
     tmp+="|"+str(int(usedbudget/1000)).rjust(6,' ')
@@ -324,6 +345,9 @@ if __name__ == "__main__":
     tmp+="-------"
     print(tmp)
 
-    print("")
-    print("Remaining:", args.totalbudget-int(usedbudget/1000), " KNOK")
-    print("")
+    if args.totalbudget:
+        print("")
+        print("Remaining:", args.totalbudget-int(usedbudget/1000), " KNOK")
+        print("")
+
+    print("Pictures generated.")
