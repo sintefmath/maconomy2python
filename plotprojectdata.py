@@ -140,167 +140,195 @@ if __name__ == "__main__":
     plt.style.use('bmh')
 
 #### actuals per month
-    fig1, ax1 = plt.subplots()
-    ax1.bar(np.linspace(1,12,12),billings_by_month/1000)
-    ax1.set_ylabel('KNOK')
-    ax1.set_xticks(np.arange(1,13))
-    ax1.set_xticklabels(labels_month)
+    text='Actuals per month'
+    print("generating figure:", text)
+    fig, ax = plt.subplots()
+    ax.bar(np.linspace(1,12,12),billings_by_month/1000)
+    ax.set_ylabel('KNOK')
+    ax.set_xticks(np.arange(1,13))
+    ax.set_xticklabels(labels_month)
     if args.totalbudget:
-        ax1.plot([1,12], [args.totalbudget/12, args.totalbudget/12],':k',label='average budget/month')
-        ax1.legend()
-    ax1.set_title('Actuals per month')
-    plt.savefig("actuals_per_month.png")
+        ax.plot([1,12], [args.totalbudget/12, args.totalbudget/12],':k',label='average budget/month')
+        ax.legend()
+    ax.set_title(text)
+    plt.tight_layout()
+    plt.savefig(text+".png")
 
     ### per employee
-    fig, (ax1,lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[4,1]})
+    text='Actuals per month per employee'
+    print("generating figure:", text)
+    fig, (ax,lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[4,1]})
     bot = np.zeros(12)
     for a, b in billings_by_employees_by_month.items():
-        ax1.bar(np.linspace(1,12,12),b/1000, bottom=bot/1000, label=employees_by_number[a])
+        ax.bar(np.linspace(1,12,12),b/1000, bottom=bot/1000, label=employees_by_number[a])
         bot+=b
-    ax1.set_ylabel('KNOK')
-    ax1.set_xticks(np.arange(1,13))
-    ax1.set_xticklabels(labels_month)
+    ax.set_ylabel('KNOK')
+    ax.set_xticks(np.arange(1,13))
+    ax.set_xticklabels(labels_month)
     if args.totalbudget:
-        ax1.plot([1,12], [args.totalbudget/12, args.totalbudget/12],':k',label='average budget/month')
-    h,l = ax1.get_legend_handles_labels()
+        ax.plot([1,12], [args.totalbudget/12, args.totalbudget/12],':k',label='average budget/month')
+    h,l = ax.get_legend_handles_labels()
     lax.legend(h,l, borderaxespad=0)
     lax.axis("off")
-    ax1.set_title('Actuals per month per employee')
+    ax.set_title(text)
     plt.tight_layout()
-    plt.savefig("actuals_per_month_per_employee.png")
+    plt.savefig(text+".png")
 
 
 
 ### actuals accumulated per month
-    fig1, ax1 = plt.subplots()
-    ax1.bar(np.linspace(1,12,12),cumsum_billings_by_month/1000)
-    ax1.set_ylabel('KNOK')
-    ax1.set_xticks(np.arange(1,13))
-    ax1.set_xticklabels(labels_month)
+    text='Actuals accumulated per month'
+    print("generating figure:", text)
+    fig, ax = plt.subplots()
+    ax.bar(np.linspace(1,12,12),cumsum_billings_by_month/1000)
+    ax.set_ylabel('KNOK')
+    ax.set_xticks(np.arange(1,13))
+    ax.set_xticklabels(labels_month)
     if args.totalbudget:
-        ax1.plot([1,12], [args.totalbudget, args.totalbudget],'-k',label='total budget')
+        ax.plot([1,12], [args.totalbudget, args.totalbudget],'-k',label='total budget')
 
     if args.regressionON and month>2:
         ydata = cumsum_billings_by_month[:month]
         xdata = np.arange(1,month+1)
         popt, pcov = curve_fit(linear_func, xdata, ydata)
-        ax1.plot(np.arange(1,13),linear_func(np.arange(1,13), popt[0], popt[1])/1000,':k',label='linear regression')
-        ax1.plot(12,linear_func(12, popt[0], popt[1])/1000,'ko')
-        ax1.legend()
-    ax1.set_title('Actuals accumulated per month')
-    plt.savefig("actuals_accumulated_per_month.png")
+        ax.plot(np.arange(1,13),linear_func(np.arange(1,13), popt[0], popt[1])/1000,':k',label='linear regression')
+        ax.plot(12,linear_func(12, popt[0], popt[1])/1000,'ko')
+        ax.legend()
+    ax.set_title(text)
+    plt.tight_layout()
+    plt.savefig(text+".png")
 
     ### per employee
-    fig, (ax1,lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[4,1]})
+    text='Actuals accumulated per month per employee'
+    print("generating figure:", text)
+    fig, (ax,lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[4,1]})
     bot = np.zeros(12)
     for a, b in billings_by_employees_by_month.items():
         bc = np.cumsum(b)
         bc[month:] = 0
-        ax1.bar(np.linspace(1,12,12),bc/1000, bottom=bot/1000, label=employees_by_number[a])
+        ax.bar(np.linspace(1,12,12),bc/1000, bottom=bot/1000, label=employees_by_number[a])
         bot+=bc
-    ax1.set_ylabel('KNOK')
-    ax1.set_xticks(np.arange(1,13))
-    ax1.set_xticklabels(labels_month)
+    ax.set_ylabel('KNOK')
+    ax.set_xticks(np.arange(1,13))
+    ax.set_xticklabels(labels_month)
     if args.totalbudget:
-        ax1.plot([1,12], [args.totalbudget, args.totalbudget],'-k',label='total budget')
+        ax.plot([1,12], [args.totalbudget, args.totalbudget],'-k',label='total budget')
 
     if args.regressionON and month>2:
-        ax1.plot(np.arange(1,13),linear_func(np.arange(1,13), popt[0], popt[1])/1000,':k',label='linear regression')
-        ax1.plot(12,linear_func(12, popt[0], popt[1])/1000,'ko')
-    h,l = ax1.get_legend_handles_labels()
+        ax.plot(np.arange(1,13),linear_func(np.arange(1,13), popt[0], popt[1])/1000,':k',label='linear regression')
+        ax.plot(12,linear_func(12, popt[0], popt[1])/1000,'ko')
+    h,l = ax.get_legend_handles_labels()
     lax.legend(h,l, borderaxespad=0)
     lax.axis("off")
-    ax1.set_title('Actuals accumulated per month per employee')
-    plt.savefig("actuals_accumulated_per_month_per_employee.png")
+    ax.set_title(text)
+    plt.tight_layout()
+    plt.savefig(text+".png")
 
 #### actuals per week
-    fig1, ax1 = plt.subplots()
-    ax1.bar(np.linspace(1,num_weeks,num_weeks),billings_by_week/1000)
-    ax1.set_ylabel('KNOK')
+    text='Actuals per week'
+    print("generating figure:", text)
+    fig, ax = plt.subplots()
+    ax.bar(np.linspace(1,num_weeks,num_weeks),billings_by_week/1000)
+    ax.set_ylabel('KNOK')
     if args.totalbudget:
-        ax1.plot([1,num_weeks], [args.totalbudget/num_weeks, args.totalbudget/num_weeks],':k',label='average budget/week')
-        ax1.legend()
-    ax1.set_title('Actuals per week')
-    plt.savefig("actuals_per_week.png")
+        ax.plot([1,num_weeks], [args.totalbudget/num_weeks, args.totalbudget/num_weeks],':k',label='average budget/week')
+        ax.legend()
+    ax.set_title(text)
+    plt.tight_layout()
+    plt.savefig(text+".png")
 
     ### per employee
-    fig, (ax1,lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[4,1]})
+    text='Actuals per week per employee'
+    print("generating figure:", text)
+    fig, (ax,lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[4,1]})
     bot = np.zeros(num_weeks)
     for a, b in billings_by_employees_by_week.items():
-        ax1.bar(np.linspace(1,num_weeks,num_weeks),b/1000, bottom=bot/1000, label=employees_by_number[a])
+        ax.bar(np.linspace(1,num_weeks,num_weeks),b/1000, bottom=bot/1000, label=employees_by_number[a])
         bot+=b
-    ax1.set_ylabel('KNOK')
+    ax.set_ylabel('KNOK')
     if args.totalbudget:
-        ax1.plot([1,num_weeks], [args.totalbudget/num_weeks, args.totalbudget/num_weeks],':k',label='average budget/week')
-    h,l = ax1.get_legend_handles_labels()
+        ax.plot([1,num_weeks], [args.totalbudget/num_weeks, args.totalbudget/num_weeks],':k',label='average budget/week')
+    h,l = ax.get_legend_handles_labels()
     lax.legend(h,l, borderaxespad=0)
     lax.axis("off")
-    ax1.set_title('Actuals per week per employee')
+    ax.set_title(text)
     plt.tight_layout()
-    plt.savefig("actuals_per_week_per_employee.png")
+    plt.savefig(text+".png")
 
 
 ### actuals accumulated per week
-    fig1, ax1 = plt.subplots()
-    ax1.bar(np.linspace(1,num_weeks,num_weeks),cumsum_billings_by_week/1000)
-    ax1.set_ylabel('KNOK')
+    text='Actuals accumulated per week'
+    print("generating figure:", text)
+    fig, ax = plt.subplots()
+    ax.bar(np.linspace(1,num_weeks,num_weeks),cumsum_billings_by_week/1000)
+    ax.set_ylabel('KNOK')
     if args.totalbudget:
-        ax1.plot([1,num_weeks], [args.totalbudget, args.totalbudget],'-k',label='total budget')
+        ax.plot([1,num_weeks], [args.totalbudget, args.totalbudget],'-k',label='total budget')
 
     if args.regressionON and week>2:
         ydata = cumsum_billings_by_week[:week]
         xdata = np.arange(1,week+1)
         popt, pcov = curve_fit(linear_func, xdata, ydata)
-        ax1.plot(np.arange(1,num_weeks+1),linear_func(np.arange(1,num_weeks+1), popt[0], popt[1])/1000,':k',label='linear regression')
-        ax1.plot(num_weeks,linear_func(num_weeks, popt[0], popt[1])/1000,'ko')
-        ax1.legend()
-    ax1.set_title('Actuals accumulated per week')
-    plt.savefig("actuals_accumulated_per_week.png")
+        ax.plot(np.arange(1,num_weeks+1),linear_func(np.arange(1,num_weeks+1), popt[0], popt[1])/1000,':k',label='linear regression')
+        ax.plot(num_weeks,linear_func(num_weeks, popt[0], popt[1])/1000,'ko')
+        ax.legend()
+    ax.set_title(text)
+    plt.tight_layout()
+    plt.savefig(text+".png")
 
     ### per employee
-    fig, (ax1,lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[4,1]})
+    text='Actuals accumulated per week per employee'
+    print("generating figure:", text)
+    fig, (ax,lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[4,1]})
     bot = np.zeros(num_weeks)
     for a, b in billings_by_employees_by_week.items():
         bc = np.cumsum(b)
         bc[week:] = 0
-        ax1.bar(np.linspace(1,num_weeks,num_weeks),bc/1000, bottom=bot/1000, label=employees_by_number[a])
+        ax.bar(np.linspace(1,num_weeks,num_weeks),bc/1000, bottom=bot/1000, label=employees_by_number[a])
         bot+=bc
-    ax1.set_ylabel('KNOK')
+    ax.set_ylabel('KNOK')
     if args.totalbudget:
-        ax1.plot([1,num_weeks], [args.totalbudget, args.totalbudget],'-k',label='total budget')
+        ax.plot([1,num_weeks], [args.totalbudget, args.totalbudget],'-k',label='total budget')
 
     if args.regressionON and week>2:
-        ax1.plot(np.arange(1,num_weeks+1),linear_func(np.arange(1,num_weeks+1), popt[0], popt[1])/1000,':k',label='linear regression')
-        ax1.plot(num_weeks,linear_func(num_weeks, popt[0], popt[1])/1000,'ko')
+        ax.plot(np.arange(1,num_weeks+1),linear_func(np.arange(1,num_weeks+1), popt[0], popt[1])/1000,':k',label='linear regression')
+        ax.plot(num_weeks,linear_func(num_weeks, popt[0], popt[1])/1000,'ko')
 
-    h,l = ax1.get_legend_handles_labels()
+    h,l = ax.get_legend_handles_labels()
     lax.legend(h,l, borderaxespad=0)
     lax.axis("off")
-    ax1.set_title('Actuals accumulated per week per employee')
-    plt.savefig("actuals_accumulated_per_week_per_employee.png")
+    ax.set_title(text)
+    plt.tight_layout()
+    plt.savefig(text+".png")
 
 ### pie charts
     employeenames = list(employees_by_number.values())
     pie_sizes = np.array(list(billings_by_employees_by_year.values()))
     usedbudget = np.sum(pie_sizes)
 
-    fig1, ax1 = plt.subplots()
-    ax1.pie(pie_sizes/usedbudget, labels=employeenames, autopct='%1.1f%%', shadow=True, startangle=90)
-    ax1.axis('equal')
-    ax1.set_title('Budget actuals')
-    plt.savefig("pie1.png")
+    text='Budget actuals'
+    print("generating figure:", text)
+    fig, ax = plt.subplots()
+    ax.pie(pie_sizes/usedbudget, labels=employeenames, autopct='%1.1f%%', shadow=True, startangle=90)
+    ax.axis('equal')
+    ax.set_title(text)
+    plt.tight_layout()
+    plt.savefig(text+".png")
 
     if args.totalbudget:
+        text='Budget total'
+        print("generating figure:", text)
         explode = np.append(np.zeros_like(pie_sizes), 0.1)
         pie_labels = employeenames.copy()
         pie_labels.append('remaining')
         pie_sizes = np.append(pie_sizes, args.totalbudget*1000-usedbudget)
         pie_sizes = pie_sizes/args.totalbudget*1000
-        fig1, ax1 = plt.subplots()
-        ax1.pie(pie_sizes, explode=explode, labels=pie_labels, autopct='%1.1f%%', shadow=True, startangle=90)
-        ax1.axis('equal')
-        ax1.set_title('Budget total')
-        plt.savefig("pie2.png")
+        fig, ax = plt.subplots()
+        ax.pie(pie_sizes, explode=explode, labels=pie_labels, autopct='%1.1f%%', shadow=True, startangle=90)
+        ax.axis('equal')
+        ax.set_title(text)
+        plt.tight_layout()
+        plt.savefig(text+".png")
 
     ### print some stats
     ln = len(max(employeenames, key=len))
@@ -348,6 +376,7 @@ if __name__ == "__main__":
     if args.totalbudget:
         print("")
         print("Remaining:", args.totalbudget-int(usedbudget/1000), " KNOK")
-        print("")
+    print("")
 
-    print("Pictures generated.")
+    if not args.totalbudget:
+        print("hint: specify total budget with command line option --totalbudget [KNOK]")
