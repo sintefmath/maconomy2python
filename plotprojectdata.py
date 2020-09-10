@@ -21,9 +21,9 @@ def getbillingprice(fn):
                 date_index=row.index('Entry Date')
             else:
                 if row[date_index] in data:
-                    data[row[date_index]] += int(row[billing_index].replace(" ", "").replace(",00",""))
+                    data[row[date_index]] += int(row[billing_index].replace(" ", "").split(",", 1)[0])
                 else:
-                    data[row[date_index]] = int(row[billing_index].replace(" ", "").replace(",00",""))
+                    data[row[date_index]] = int(row[billing_index].replace(" ", "").split(",", 1)[0])
             line_count += 1
     return data
 
@@ -37,7 +37,10 @@ def getemployees(fn):
                 emplno_index=row.index('Empl. No.')
                 emplname_index=row.index('Empl. Name')
             else:
-                data[row[emplno_index]] = str(row[emplname_index])
+                name=str(row[emplname_index])
+                if name=='':
+                    name="other"
+                data[row[emplno_index]] = name
             line_count += 1
     return data
 
@@ -55,9 +58,9 @@ def getemployeesbillingprice(employees_by_number, fn):
                 date_index=row.index('Entry Date')
             else:
                 if row[date_index] in data[row[emplno_index]]:
-                    data[row[emplno_index]][row[date_index]] += int(row[billing_index].replace(" ", "").replace(",00",""))
+                    data[row[emplno_index]][row[date_index]] += int(row[billing_index].replace(" ", "").split(",", 1)[0])
                 else:
-                    data[row[emplno_index]][row[date_index]] = int(row[billing_index].replace(" ", "").replace(",00",""))
+                    data[row[emplno_index]][row[date_index]] = int(row[billing_index].replace(" ", "").split(",", 1)[0])
             line_count += 1
     return data
 
@@ -85,20 +88,26 @@ if __name__ == "__main__":
     employees_by_number = getemployees(args.filename)
     billings_by_employees_by_day = getemployeesbillingprice(employees_by_number, args.filename)
 
-### if the project is from a past year, set month to 12 and week to number of weeks last year
+### if the project is from a past year, set month to 12 and week to number of weeks that year
     today = datetime.datetime.today()
-    week=today.isocalendar()[1]
-    month=today.month
-    year=today.year
-    num_weeks = datetime.date(year, 12, 31).isocalendar()[1]
+    this_week=today.isocalendar()[1]
+    this_month=today.month
+    this_year=today.year
 
     datestr = list(billings_by_day.keys())[0]
-    date = datetime.datetime.strptime(datestr, "%d.%m.%Y")
+    csv_date = datetime.datetime.strptime(datestr, "%d.%m.%Y")
 
     ### any date from the csv file will suffice
-    if today.year > date.year:
+    if this_year > csv_date.year:
+        year = csv_date.year
         month = 12
-        week = datetime.date(year-1, 12, 31).isocalendar()[1]
+        week = datetime.date(csv_date.year, 12, 29).isocalendar()[1]
+    else:
+        year = this_year
+        month = this_month
+        week = this_week
+
+    num_weeks = datetime.date(year, 12, 29).isocalendar()[1]
 
 
     billings_by_employees_by_year = {}
