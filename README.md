@@ -1,6 +1,8 @@
 # maconomy2python
 
-example usage: python plotprojectdata.py --filename ExportProjectCard_projectnumber.csv --totalbudget 1000
+Update: The "new" maconomy exports xlsx format (set use_csv=True in plotprojectdata.py to read "old" csv files)
+
+example usage: python plotprojectdata.py --filename ExportProjectCard_projectnumber.xlsx --totalbudget 1000
 
 example output:
 
