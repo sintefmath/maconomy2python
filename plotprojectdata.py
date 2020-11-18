@@ -1,4 +1,8 @@
-import csv
+use_csv=False
+if use_csv:
+    import csv
+else:
+    from openpyxl import load_workbook
 import argparse
 import datetime
 import numpy as np
@@ -10,8 +14,38 @@ delimiter = ";"
 def linear_func(x, a, b):
     return a + b * x
 
-def getbillingprice(fn):
+def getbillingprice(wbs):
+    data_dict={}
+
+    found=0
+    for i in range(1,wbs.max_column+1):
+        string=wbs.cell(1,i).value
+        if string == "Billing Price, Reg.":
+            billing_index=i
+            found+=1
+        if string == "Date":
+            date_index=i
+            found+=1
+        if found==2:
+            break
+    for i in range(2,wbs.max_row+1):
+        datestr=wbs.cell(i,date_index).value
+        date = datetime.datetime.strptime(datestr.replace("=Date(","").replace(")",""), "%Y,%m,%d")
+        datestr = str(date.day)+"."+str(date.month)+"."+str(date.year)
+
+        valuestr=wbs.cell(i,billing_index).value
+        value = int(valuestr.replace("=", "").split(".", 1)[0])
+
+        if datestr in data_dict:
+            data_dict[datestr] += value
+        else:
+            data_dict[datestr] = value
+    return data_dict
+
+
+def getbillingprice_csv(fn):
     data={}
+    'Date'
     with open(fn) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=delimiter)
         line_count = 0
@@ -27,7 +61,29 @@ def getbillingprice(fn):
             line_count += 1
     return data
 
-def getemployees(fn):
+def getemployees(wbs):
+    data_dict={}
+
+    found=0
+    for i in range(1,wbs.max_column+1):
+        string=wbs.cell(1,i).value
+        if string == "Employee No.":
+            emplno_index=i
+            found+=1
+        if string == "Employee Name":
+            emplname_index=i
+            found+=1
+        if found==2:
+            break
+    for i in range(2,wbs.max_row+1):
+        number=wbs.cell(i,emplno_index).value
+        name=wbs.cell(i,emplname_index).value
+        if name=='':
+            name="other"
+        data_dict[number] = name
+    return data_dict
+
+def getemployees_csv(fn):
     data={}
     with open(fn) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=delimiter)
@@ -44,7 +100,43 @@ def getemployees(fn):
             line_count += 1
     return data
 
-def getemployeesbillingprice(employees_by_number, fn):
+def getemployeesbillingprice(employees_by_number, wbs):
+    data_dict={}
+
+    for key in employees_by_number:
+        data_dict[key]={}
+
+    found=0
+    for i in range(1,wbs.max_column+1):
+        string=wbs.cell(1,i).value
+        if string == "Employee No.":
+            emplno_index=i
+            found+=1
+        if string == "Billing Price, Reg.":
+            billing_index=i
+            found+=1
+        if string == "Date":
+            date_index=i
+            found+=1
+        if found==3:
+            break
+    for i in range(2,wbs.max_row+1):
+        datestr=wbs.cell(i,date_index).value
+        date = datetime.datetime.strptime(datestr.replace("=Date(","").replace(")",""), "%Y,%m,%d")
+        datestr = str(date.day)+"."+str(date.month)+"."+str(date.year)
+
+        valuestr=wbs.cell(i,billing_index).value
+        value = int(valuestr.replace("=", "").split(".", 1)[0])
+
+        number=wbs.cell(i,emplno_index).value
+
+        if datestr in data_dict[number]:
+            data_dict[number][datestr] += value
+        else:
+            data_dict[number][datestr] = value
+    return data_dict
+
+def getemployeesbillingprice_csv(employees_by_number, fn):
     data={}
     for key in employees_by_number:
         data[key]={}
@@ -83,10 +175,26 @@ if __name__ == "__main__":
     parser.add_argument('--regressionON', metavar='regressionON', type=str2bool, nargs='?', const=True, default=True, help='plot regression')
     args = parser.parse_args()
 
-    billings_by_day = getbillingprice(args.filename)
-    ### there might be two people with the exact name, we need to use the Empl. No.
-    employees_by_number = getemployees(args.filename)
-    billings_by_employees_by_day = getemployeesbillingprice(employees_by_number, args.filename)
+    if use_csv:
+        billings_by_day = getbillingprice_csv(args.filename)
+        ### there might be two people with the exact name, we need to use the Empl. No.
+        employees_by_number = getemployees_csv(args.filename)
+        billings_by_employees_by_day = getemployeesbillingprice_csv(employees_by_number, args.filename)
+    else:
+        wb = load_workbook(filename=args.filename)
+        wbs = wb[wb.sheetnames[0]]
+
+        print("Reading billing prices...", end=" ", flush=True)
+        billings_by_day = getbillingprice(wbs)
+        print("done.")
+        print("Reading employees...", end=" ", flush=True)
+        ### there might be two people with the exact name, we need to use the Empl. No.
+        employees_by_number = getemployees(wbs)
+        print("done.")
+        print("Reading billings by employees...", end=" ", flush=True)
+        billings_by_employees_by_day = getemployeesbillingprice(employees_by_number, wbs)
+        print("done.")
+        wb.close()
 
 ### if the project is from a past year, set month to 12 and week to number of weeks that year
     today = datetime.datetime.today()
@@ -95,13 +203,13 @@ if __name__ == "__main__":
     this_year=today.year
 
     datestr = list(billings_by_day.keys())[0]
-    csv_date = datetime.datetime.strptime(datestr, "%d.%m.%Y")
+    file_date = datetime.datetime.strptime(datestr, "%d.%m.%Y")
 
-    ### any date from the csv file will suffice
-    if this_year > csv_date.year:
-        year = csv_date.year
+    ### any date from the file will suffice
+    if this_year > file_date.year:
+        year = file_date.year
         month = 12
-        week = datetime.date(csv_date.year, 12, 29).isocalendar()[1]
+        week = datetime.date(file_date.year, 12, 29).isocalendar()[1]
     else:
         year = this_year
         month = this_month
