@@ -34,7 +34,7 @@ def getbillingprice(wbs):
         datestr = str(date.day)+"."+str(date.month)+"."+str(date.year)
 
         valuestr=wbs.cell(i,billing_index).value
-        value = int(valuestr.replace("=", "").split(".", 1)[0])
+        value = float(valuestr.replace("=", "").replace(",", "."))
 
         if datestr in data_dict:
             data_dict[datestr] += value
@@ -126,7 +126,7 @@ def getemployeesbillingprice(employees_by_number, wbs):
         datestr = str(date.day)+"."+str(date.month)+"."+str(date.year)
 
         valuestr=wbs.cell(i,billing_index).value
-        value = int(valuestr.replace("=", "").split(".", 1)[0])
+        value = float(valuestr.replace("=", "").replace(",", "."))
 
         number=wbs.cell(i,emplno_index).value
 
