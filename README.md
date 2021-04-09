@@ -2,6 +2,8 @@
 
 Update: The "new" maconomy exports xlsx format (set use_csv=True in plotprojectdata.py to read "old" csv files)
 
+TODO: set start and end date to be considered via command line option
+
 example usage: python plotprojectdata.py --filename ExportProjectCard_projectnumber.xlsx --totalbudget 1000
 
 example output:
