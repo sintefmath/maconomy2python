@@ -425,12 +425,30 @@ if __name__ == "__main__":
 
     text='Budget actuals'
     print("generating figure:", text)
+
+    ### legend outside
+    fig, ax = plt.subplots()
+    y = pie_sizes/usedbudget
+    patches, texts = ax.pie(y, shadow=True, startangle=90)
+    percent = 100.*y/y.sum()
+    labels = ['{0} - {1:1.1f} %'.format(i,j) for i,j in zip(employeenames, percent)]
+    sort_legend = True
+    if sort_legend:
+        patches, labels, dummy =  zip(*sorted(zip(patches, labels, y), key=lambda x: x[2], reverse=True))
+    plt.legend(patches, labels, loc='center left', bbox_to_anchor=(-0.1, 1.))
+    ax.axis('equal')
+    ax.set_title(text)
+    plt.tight_layout()
+    plt.savefig(text+".png")
+
+    ### legend within
     fig, ax = plt.subplots()
     ax.pie(pie_sizes/usedbudget, labels=employeenames, autopct='%1.1f%%', shadow=True, startangle=90)
     ax.axis('equal')
     ax.set_title(text)
     plt.tight_layout()
-    plt.savefig(text+".png")
+    plt.savefig(text+"2.png")
+
 
     if args.totalbudget:
         text='Budget total'
@@ -440,12 +458,29 @@ if __name__ == "__main__":
         pie_labels.append('remaining')
         pie_sizes = np.append(pie_sizes, args.totalbudget*1000-usedbudget)
         pie_sizes = pie_sizes/args.totalbudget*1000
+
+        ### legend outside
+        fig, ax = plt.subplots()
+        y = pie_sizes
+        patches, texts = ax.pie(y, explode=explode, shadow=True, startangle=90)
+        percent = 100.*y/y.sum()
+        labels = ['{0} - {1:1.1f} %'.format(i,j) for i,j in zip(employeenames, percent)]
+        sort_legend = True
+        if sort_legend:
+            patches, labels, dummy =  zip(*sorted(zip(patches, labels, y), key=lambda x: x[2], reverse=True))
+        plt.legend(patches, labels, loc='center left', bbox_to_anchor=(-0.1, 1.))
+        ax.axis('equal')
+        ax.set_title(text)
+        plt.tight_layout()
+        plt.savefig(text+".png")
+
+        ### legend within
         fig, ax = plt.subplots()
         ax.pie(pie_sizes, explode=explode, labels=pie_labels, autopct='%1.1f%%', shadow=True, startangle=90)
         ax.axis('equal')
         ax.set_title(text)
         plt.tight_layout()
-        plt.savefig(text+".png")
+        plt.savefig(text+"2.png")
 
     ### print some stats
     ln = len(max(employeenames, key=len))
