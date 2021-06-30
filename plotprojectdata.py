@@ -464,7 +464,7 @@ if __name__ == "__main__":
         y = pie_sizes
         patches, texts = ax.pie(y, explode=explode, shadow=True, startangle=90)
         percent = 100.*y/y.sum()
-        labels = ['{0} - {1:1.1f} %'.format(i,j) for i,j in zip(employeenames, percent)]
+        labels = ['{0} - {1:1.1f} %'.format(i,j) for i,j in zip(pie_labels, pie_sizes/np.sum(pie_sizes)*100)]
         sort_legend = True
         if sort_legend:
             patches, labels, dummy =  zip(*sorted(zip(patches, labels, y), key=lambda x: x[2], reverse=True))
