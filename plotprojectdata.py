@@ -1,8 +1,4 @@
-use_csv=False
-if use_csv:
-    import csv
-else:
-    from openpyxl import load_workbook
+import os
 import argparse
 import datetime
 import numpy as np
@@ -41,6 +37,24 @@ def getbillingprice(wbs):
         else:
             data_dict[datestr] = value
     return data_dict
+
+def getbillingprice_ssv(fn):
+    data={}
+    'date'
+    with open(fn) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=delimiter)
+        line_count = 0
+        for row in csv_reader:
+            if line_count == 0:
+                billing_index=row.index('billingpriceregcurrency')
+                date_index=row.index('entrydate')
+            else:
+                if row[date_index] in data:
+                    data[row[date_index]] += int(row[billing_index].replace(" ", "").split(".", 1)[0])
+                else:
+                    data[row[date_index]] = int(row[billing_index].replace(" ", "").split(".", 1)[0])
+            line_count += 1
+    return data
 
 
 def getbillingprice_csv(fn):
@@ -82,6 +96,24 @@ def getemployees(wbs):
             name="other"
         data_dict[number] = name
     return data_dict
+
+def getemployees_ssv(fn):
+    data={}
+    with open(fn) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=delimiter)
+        line_count = 0
+        for row in csv_reader:
+            if line_count == 0:
+                emplno_index=row.index('employeenumber')
+                emplname_index=row.index('employeenamevar')
+            else:
+                name=str(row[emplname_index])
+                if name=='':
+                    name="other"
+                data[row[emplno_index]] = name
+            line_count += 1
+    return data
+
 
 def getemployees_csv(fn):
     data={}
@@ -156,6 +188,27 @@ def getemployeesbillingprice_csv(employees_by_number, fn):
             line_count += 1
     return data
 
+
+def getemployeesbillingprice_ssv(employees_by_number, fn):
+    data={}
+    for key in employees_by_number:
+        data[key]={}
+    with open(fn) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=delimiter)
+        line_count = 0
+        for row in csv_reader:
+            if line_count == 0:
+                emplno_index=row.index('employeenumber')
+                billing_index=row.index('billingpriceregcurrency')
+                date_index=row.index('entrydate')
+            else:
+                if row[date_index] in data[row[emplno_index]]:
+                    data[row[emplno_index]][row[date_index]] += int(row[billing_index].replace(" ", "").split(".", 1)[0])
+                else:
+                    data[row[emplno_index]][row[date_index]] = int(row[billing_index].replace(" ", "").split(".", 1)[0])
+            line_count += 1
+    return data
+
 def str2bool(v):
     if isinstance(v, bool):
        return v
@@ -170,31 +223,50 @@ def str2bool(v):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Parse and plot data')
-    parser.add_argument('--filename', metavar='filename', required=True, type=str, help='name of cvs file')
+    parser.add_argument('--projectnumber', metavar='projectnumber', required=False, type=str, default='None', help='project number')
+    parser.add_argument('--filename', metavar='filename', required=False, type=str, help='name of cvs file')
     parser.add_argument('--totalbudget', metavar='totalbudget', required=False, type=int, help='total budget in KNOK')
     parser.add_argument('--regressionON', metavar='regressionON', type=str2bool, nargs='?', const=True, default=True, help='plot regression')
     args = parser.parse_args()
 
-    if use_csv:
-        billings_by_day = getbillingprice_csv(args.filename)
+    if args.projectnumber is not 'None':
+        import csv
+        from sintefpy.projectdata import fetch
+        print("Downloading data from maconomy...", end=" ", flush=True)
+        #os.system('~/.local/bin/spy project get-data -p '+args.projectnumber)
+        dn = fetch(args.projectnumber)
+        print("done.")
+        filename="data.csv"
+        billings_by_day = getbillingprice_ssv(filename)
         ### there might be two people with the exact name, we need to use the Empl. No.
-        employees_by_number = getemployees_csv(args.filename)
-        billings_by_employees_by_day = getemployeesbillingprice_csv(employees_by_number, args.filename)
+        employees_by_number = getemployees_ssv(filename)
+        billings_by_employees_by_day = getemployeesbillingprice_ssv(employees_by_number, filename)
     else:
-        wb = load_workbook(filename=args.filename)
-        wbs = wb[wb.sheetnames[0]]
+        _, fext = os.path.splitext(args.filename)
+        if fext=='.csv':
+            import csv
+            billings_by_day = getbillingprice_csv(args.filename)
+            ### there might be two people with the exact name, we need to use the Empl. No.
+            employees_by_number = getemployees_csv(args.filename)
+            billings_by_employees_by_day = getemployeesbillingprice_csv(employees_by_number, args.filename)
+        elif fext=='.xlsx':
+            from openpyxl import load_workbook
+            wb = load_workbook(filename=args.filename)
+            wbs = wb[wb.sheetnames[0]]
 
-        print("Reading billing prices...", end=" ", flush=True)
-        billings_by_day = getbillingprice(wbs)
-        print("done.")
-        print("Reading employees...", end=" ", flush=True)
-        ### there might be two people with the exact name, we need to use the Empl. No.
-        employees_by_number = getemployees(wbs)
-        print("done.")
-        print("Reading billings by employees...", end=" ", flush=True)
-        billings_by_employees_by_day = getemployeesbillingprice(employees_by_number, wbs)
-        print("done.")
-        wb.close()
+            print("Reading billing prices...", end=" ", flush=True)
+            billings_by_day = getbillingprice(wbs)
+            print("done.")
+            print("Reading employees...", end=" ", flush=True)
+            ### there might be two people with the exact name, we need to use the Empl. No.
+            employees_by_number = getemployees(wbs)
+            print("done.")
+            print("Reading billings by employees...", end=" ", flush=True)
+            billings_by_employees_by_day = getemployeesbillingprice(employees_by_number, wbs)
+            print("done.")
+            wb.close()
+        else:
+            raise NotImplementedError
 
 ### if the project is from a past year, set month to 12 and week to number of weeks that year
     today = datetime.datetime.today()
@@ -203,7 +275,10 @@ if __name__ == "__main__":
     this_year=today.year
 
     datestr = list(billings_by_day.keys())[0]
-    file_date = datetime.datetime.strptime(datestr, "%d.%m.%Y")
+    if True:
+        file_date = datetime.datetime.strptime(datestr, "%Y-%m-%d")
+    else:
+        file_date = datetime.datetime.strptime(datestr, "%d.%m.%Y")
 
     ### any date from the file will suffice
     if this_year > file_date.year:
@@ -227,14 +302,20 @@ if __name__ == "__main__":
         billings_by_employees_by_week[employeenr] = np.zeros(num_weeks)
         for billingday, value in billings.items():
             billings_by_employees_by_year[employeenr] += value
-            date = datetime.datetime.strptime(billingday, "%d.%m.%Y")
+            if True:
+                date = datetime.datetime.strptime(billingday, "%Y-%m-%d")
+            else:
+                date = datetime.datetime.strptime(billingday, "%d.%m.%Y")
             billings_by_employees_by_month[employeenr][date.month-1] += value
             billings_by_employees_by_week[employeenr][date.isocalendar()[1]-1] += value
 
     billings_by_month = np.zeros(12)
     billings_by_week = np.zeros(num_weeks)
     for billingday, billings in billings_by_day.items():
-        date = datetime.datetime.strptime(billingday, "%d.%m.%Y")
+        if True:
+            date = datetime.datetime.strptime(billingday, "%Y-%m-%d")
+        else:
+            date = datetime.datetime.strptime(billingday, "%d.%m.%Y")
         billings_by_month[date.month-1] += billings
         billings_by_week[date.isocalendar()[1]-1] += billings
 
