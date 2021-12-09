@@ -235,6 +235,8 @@ if __name__ == "__main__":
         print("Downloading data from maconomy...", end=" ", flush=True)
         #os.system('~/.local/bin/spy project get-data -p '+args.projectnumber)
         dn = fetch(args.projectnumber)
+        # it is also possible to download the data
+        #dn = fetch(args.projectnumber, output_file='data.csv', start=None, end=None)
         print("done.")
         filename="data.csv"
         billings_by_day = getbillingprice_ssv(filename)
@@ -531,7 +533,7 @@ if __name__ == "__main__":
     plt.savefig(text+"2.png")
 
 
-    if args.totalbudget:
+    if args.totalbudget and args.totalbudget>=usedbudget:
         text='Budget total'
         print("generating figure:", text)
         explode = np.append(np.zeros_like(pie_sizes), 0.1)
