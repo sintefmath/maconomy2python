@@ -1,4 +1,5 @@
 import os
+import subprocess
 import argparse
 import datetime
 import numpy as np
@@ -233,9 +234,19 @@ if __name__ == "__main__":
         import csv
         from sintefpy.projectdata import fetch
         print("Downloading data from maconomy...", end=" ", flush=True)
-        #os.system('~/.local/bin/spy project get-data -p '+args.projectnumber)
-        filename="data.csv"
+        filename='data_'+str(args.projectnumber)+'.csv'
         dn = fetch(args.projectnumber, output_file=filename, start=None, end=None)
+        if not args.totalbudget:
+            subprocess.check_call(['spy', 'project', 'get-budget', '-p', str(args.projectnumber)], stdout=subprocess.DEVNULL)
+
+            bfname='budget_'+str(args.projectnumber)+'.csv'
+            print(bfname)
+            with open(bfname) as csv_file:
+                csv_reader = csv.reader(csv_file, delimiter=delimiter)
+                line_count = 0
+                for row in csv_reader:
+                    if row[0]=="Total":
+                        args.totalbudget=int(float(row[1])/1000)
         print("done.")
         billings_by_day = getbillingprice_ssv(filename)
         ### there might be two people with the exact name, we need to use the Empl. No.
