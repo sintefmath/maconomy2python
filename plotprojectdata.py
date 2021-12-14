@@ -234,11 +234,9 @@ if __name__ == "__main__":
         from sintefpy.projectdata import fetch
         print("Downloading data from maconomy...", end=" ", flush=True)
         #os.system('~/.local/bin/spy project get-data -p '+args.projectnumber)
-        dn = fetch(args.projectnumber)
-        # it is also possible to download the data
-        #dn = fetch(args.projectnumber, output_file='data.csv', start=None, end=None)
-        print("done.")
         filename="data.csv"
+        dn = fetch(args.projectnumber, output_file=filename, start=None, end=None)
+        print("done.")
         billings_by_day = getbillingprice_ssv(filename)
         ### there might be two people with the exact name, we need to use the Empl. No.
         employees_by_number = getemployees_ssv(filename)
