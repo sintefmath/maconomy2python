@@ -4,8 +4,9 @@ follow the instructions at https://stash.code.sintef.no/projects/SPY/repos/sinte
  - git clone ssh://git@git.code.sintef.no/spy/sintefpy.git
  - cd sintefpy/
  - pip install --user .
+ - run, e.g.: "~/.local/bin/spy timesheet show", type in your username and password and say yes to saving credentials
 
-example usage1: python plotprojectdata.py --projectnumber 123 --totalbudget 1000
+**example usage1: **python plotprojectdata.py --projectnumber 123 --totalbudget 1000
 
 example output:
 
@@ -14,8 +15,4 @@ example output:
 ![actuals_per_month](actuals_per_month.png)
 ![actuals_accumulated](actuals_accumulated.png)
 
-example usage2: python plotprojectdata.py --filename ExportProjectCard_projectnumber.xlsx --totalbudget 1000
-
-
-TODO: set start and end date to be considered via command line option
-
+**example usage2: python plotprojectdata.py --filename ExportProjectCard_projectnumber.xlsx --totalbudget 1000**
