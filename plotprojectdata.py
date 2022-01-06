@@ -228,14 +228,26 @@ if __name__ == "__main__":
     parser.add_argument('--filename', metavar='filename', required=False, type=str, help='name of cvs file')
     parser.add_argument('--totalbudget', metavar='totalbudget', required=False, type=int, help='total budget in KNOK')
     parser.add_argument('--regressionON', metavar='regressionON', type=str2bool, nargs='?', const=True, default=True, help='plot regression')
+    parser.add_argument('--startdate', metavar='startdate', required=False, type=str, default='None', help='start date in format dmY')
+    parser.add_argument('--enddate', metavar='enddate', required=False, type=str, default='None', help='end date in format dmY')
     args = parser.parse_args()
+
+
+    if args.startdate is not 'None':
+        args.startdate = datetime.datetime.strptime(args.startdate, "%d%m%Y").date()
+    else:
+        args.startdate = None
+    if args.enddate is not 'None':
+        args.enddate = datetime.datetime.strptime(args.enddate, "%d%m%Y").date()
+    else:
+        args.enddate = None
 
     if args.projectnumber is not 'None':
         import csv
         from sintefpy.projectdata import fetch
         print("Downloading data from maconomy...", end=" ", flush=True)
         filename='data_'+str(args.projectnumber)+'.csv'
-        dn = fetch(args.projectnumber, output_file=filename, start=None, end=None)
+        dn = fetch(args.projectnumber, output_file=filename, start=args.startdate, end=args.enddate)
         if not args.totalbudget:
             subprocess.check_call(['spy', 'project', 'get-budget', '-p', str(args.projectnumber)], stdout=subprocess.DEVNULL)
 
