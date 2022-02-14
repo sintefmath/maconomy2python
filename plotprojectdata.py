@@ -258,7 +258,10 @@ if __name__ == "__main__":
                 line_count = 0
                 for row in csv_reader:
                     if row[0]=="Total":
-                        args.totalbudget=int(float(row[1])/1000)
+                        if len(row)<2:
+                            print("no total budget specified")
+                        else:
+                            args.totalbudget=int(float(row[1])/1000)
         print("done.")
         billings_by_day = getbillingprice_ssv(filename)
         ### there might be two people with the exact name, we need to use the Empl. No.
@@ -527,31 +530,33 @@ if __name__ == "__main__":
     pie_sizes = np.array(list(billings_by_employees_by_year.values()))
     usedbudget = np.sum(pie_sizes)
 
-    text='Budget actuals'
-    print("generating figure:", text)
+    if usedbudget>0:
 
-    ### legend outside
-    fig, ax = plt.subplots()
-    y = pie_sizes/usedbudget
-    patches, texts = ax.pie(y, shadow=True, startangle=90)
-    percent = 100.*y/y.sum()
-    labels = ['{0} - {1:1.1f} %'.format(i,j) for i,j in zip(employeenames, percent)]
-    sort_legend = True
-    if sort_legend:
-        patches, labels, dummy =  zip(*sorted(zip(patches, labels, y), key=lambda x: x[2], reverse=True))
-    plt.legend(patches, labels, loc='center left', bbox_to_anchor=(-0.1, 1.))
-    ax.axis('equal')
-    ax.set_title(text)
-    plt.tight_layout()
-    plt.savefig(text+".png")
+        text='Budget actuals'
+        print("generating figure:", text)
 
-    ### legend within
-    fig, ax = plt.subplots()
-    ax.pie(pie_sizes/usedbudget, labels=employeenames, autopct='%1.1f%%', shadow=True, startangle=90)
-    ax.axis('equal')
-    ax.set_title(text)
-    plt.tight_layout()
-    plt.savefig(text+"2.png")
+        ### legend outside
+        fig, ax = plt.subplots()
+        y = pie_sizes/usedbudget
+        patches, texts = ax.pie(y, shadow=True, startangle=90)
+        percent = 100.*y/y.sum()
+        labels = ['{0} - {1:1.1f} %'.format(i,j) for i,j in zip(employeenames, percent)]
+        sort_legend = True
+        if sort_legend:
+            patches, labels, dummy =  zip(*sorted(zip(patches, labels, y), key=lambda x: x[2], reverse=True))
+        plt.legend(patches, labels, loc='center left', bbox_to_anchor=(-0.1, 1.))
+        ax.axis('equal')
+        ax.set_title(text)
+        plt.tight_layout()
+        plt.savefig(text+".png")
+
+        ### legend within
+        fig, ax = plt.subplots()
+        ax.pie(pie_sizes/usedbudget, labels=employeenames, autopct='%1.1f%%', shadow=True, startangle=90)
+        ax.axis('equal')
+        ax.set_title(text)
+        plt.tight_layout()
+        plt.savefig(text+"2.png")
 
 
     if args.totalbudget and args.totalbudget>=usedbudget:
