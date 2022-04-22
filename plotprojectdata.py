@@ -559,7 +559,7 @@ if __name__ == "__main__":
         plt.savefig(text+"2.png")
 
 
-    if args.totalbudget and args.totalbudget>=usedbudget:
+    if args.totalbudget and args.totalbudget*1000>=usedbudget:
         text='Budget total'
         print("generating figure:", text)
         explode = np.append(np.zeros_like(pie_sizes), 0.1)
